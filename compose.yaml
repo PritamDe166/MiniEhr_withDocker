@@ -12,6 +12,14 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./db/scripts/001_create_patients.sql:/docker-entrypoint-initdb.d/001_create_patients.sql:ro
+      - ./db/seed/001_sample_patients.sql:/docker-entrypoint-initdb.d/900_seed_sample_patients.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
 
   api:
     build: .
@@ -21,7 +29,8 @@ services:
     environment:
       ConnectionStrings__MiniEhrDb: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
 volumes:
   pgdata:
